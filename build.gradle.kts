@@ -118,20 +118,17 @@ fun resolveProjectVersion(): String {
 }
 
 fun normalizeTagVersion(tag: String): String {
-    val normalized = tag.trim().removePrefix("v")
-    require(Regex("\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?").matches(normalized)) {
-        "Release tag '$tag' must be a semantic version such as v1.2.3"
-    }
-    return normalized
+    // Keep release tags verbatim like TSGen; only discard the conventional prefix.
+    return tag.trim().removePrefix("v")
 }
 
 fun nextSnapshotVersion(tag: String): String {
-    val match = Regex("^(?:v)?(\\d+)\\.(\\d+)\\.(\\d+)(?:[-+].*)?$").matchEntire(tag.trim())
+    val match = Regex("^(?:v)?(\\d+(?:\\.\\d+)+)(?:[-+].*)?$").matchEntire(tag.trim())
         ?: return fallbackVersion
-    val major = match.groupValues[1]
-    val minor = match.groupValues[2]
-    val patch = match.groupValues[3].toInt() + 1
-    return "$major.$minor.$patch-SNAPSHOT"
+    val parts = match.groupValues[1].split('.').toMutableList()
+    val last = parts.last().toIntOrNull() ?: return fallbackVersion
+    parts[parts.lastIndex] = (last + 1).toString()
+    return "${parts.joinToString(".")}-SNAPSHOT"
 }
 
 fun gitOutput(vararg arguments: String): String? = try {
